@@ -241,11 +241,13 @@ function openForm(type, ds) {
       S.items.push({ id: uid(), title: v.title, classId: v.classId, due: v.due, time: v.time, remind: v.remind ? +v.remind : null, notes: v.notes, done: false });
       if (v.remind && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
     }
-    if (type === 'class') S.classes.push({ id: uid(), name: v.name, teacher: v.teacher, period: v.period, room: v.room, color: v.color });
+    if (type === 'class') { const c = { id: uid(), name: v.name, teacher: v.teacher, period: v.period, room: v.room, color: v.color }; S.classes.push(c); openClass = c.id; }
     if (type === 'goal') { const g = { id: uid(), title: v.title, area: v.area, deadline: v.deadline, steps: [] }; S.goals.push(g); openGoal = g.id; }
     if (type === 'step') goal(ds.goal).steps.push({ id: uid(), label: v.label, date: v.date, done: false });
     if (type === 'note') S.notes.push({ id: uid(), text: v.text, date: today(), classId: v.attach.startsWith('c:') ? v.attach.slice(2) : '', goalId: v.attach.startsWith('g:') ? v.attach.slice(2) : '' });
     $('#dlg').close(); save();
+    // Scroll the new class or goal into view so it's easy to see it was added
+    if (type === 'class' || type === 'goal') document.querySelector('.panel.open')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
   $('#dlg').showModal();
   form.querySelector('input,textarea').focus();
