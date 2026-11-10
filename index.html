@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homework Planner GT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F7F7F5;--card:#fff;--line:#E2E2DD;--ink:#1A1A1A;--muted:#5C5C58;--accent:#2F5BEA;--soft:#EEF2FD}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,system-ui,sans-serif}
+h1,h2,h3{font-family:'Space Grotesk',Inter,sans-serif;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:20px 20px 100px}
+header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:20px}
+header h1{font-size:26px}
+#tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px}
+#tabs button{border:0;background:none;padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:500;min-height:44px}
+#tabs button.on{background:var(--accent);color:#fff}
+@media(max-width:640px){#tabs{position:fixed;left:8px;right:8px;bottom:8px;justify-content:space-around;z-index:5;box-shadow:0 4px 16px #0002}#tabs button{padding:10px 6px;font-size:13px}}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:8px 0 14px}
+.btn{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:0 16px;min-height:44px;font-weight:600;cursor:pointer}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.sec{font-size:13px;font-weight:600;color:#4A4A46;letter-spacing:.4px;text-transform:uppercase;margin:18px 0 8px}
+.card{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
+.card input[type=checkbox]{width:20px;height:20px;margin:2px 0 0;accent-color:var(--accent);flex:none}
+.card .body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.card.done{opacity:.55}.card.done b{text-decoration:line-through}
+.tag{font-size:12px;font-weight:600;color:#4A4A46;display:flex;align-items:center;gap:6px}
+.tag i{width:10px;height:10px;border-radius:5px;display:inline-block}
+small{color:var(--muted);font-size:13px}
+.x{border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;min-width:32px;min-height:32px;border-radius:8px}
+.x:hover{background:#0000000d}
+.empty{color:var(--muted);padding:8px 2px}
+.week{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;overflow-x:auto;padding-bottom:6px}
+.day{background:#EFEFEB;border:1px solid var(--line);border-radius:14px;padding:10px;min-height:300px}
+.day.today{background:var(--soft);border:2px solid var(--accent)}
+.day h3{font-size:14px;display:flex;justify-content:space-between;margin:2px 4px 10px;font-family:Inter;font-weight:600}
+.day .card{padding:10px;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.panel.open{border:2px solid var(--accent)}
+.cls{display:flex;gap:12px;align-items:center;cursor:pointer;width:100%;text-align:left;background:none;border:0;padding:0}
+.stripe{width:6px;align-self:stretch;border-radius:3px;flex:none}
+.prog{height:8px;border-radius:4px;background:#E8E8E3;overflow:hidden;flex:1}.prog span{display:block;height:100%;background:var(--accent)}
+.pill{font-size:12px;font-weight:600;background:var(--soft);color:#1F3FAE;padding:3px 10px;border-radius:10px}
+.note{background:var(--bg);border-radius:10px;padding:10px 12px;margin:6px 0;display:flex;gap:8px;white-space:pre-wrap}
+.note div{flex:1}
+dialog{border:0;border-radius:18px;padding:0;width:min(440px,94vw);box-shadow:0 20px 60px #0004}
+dialog form{padding:20px;display:flex;flex-direction:column;gap:12px}
+dialog label{display:flex;flex-direction:column;gap:5px;font-size:14px;font-weight:600}
+dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radius:10px;padding:10px 12px;min-height:44px;background:#fff;font-weight:400}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+<h1>Homework Planner</h1>
+<nav id="tabs"></nav>
+</header>
+<main id="view"></main>
+</div>
+<dialog id="dlg"><form id="form" method="dialog"></form></dialog>
+<script>
+const KEY = 'hpgt-v1';
+const COLORS = ['#2F5BEA','#C2410C','#7C3AED','#0F766E','#B45309','#BE185D','#4D7C0F','#0369A1'];
+const TABS = [['today','Today'],['week','Week'],['classes','Classes'],['goals','Goals'],['notes','Notes']];
+let S = JSON.parse(localStorage.getItem(KEY) || 'null') || { classes: [], items: [], goals: [], notes: [] };
+let tab = 'today', weekOff = 0, openGoal = null, openClass = null;
+
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const z = n => String(n).padStart(2, '0');
+const ymd = d => d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+const fmt = s => s ? new Date(s + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+const cls = id => S.classes.find(c => c.id === id) || { name: 'No class', color: '#8A8A85' };
+const goal = id => S.goals.find(g => g.id === id);
+function save() { localStorage.setItem(KEY, JSON.stringify(S)); render(); }
+
+/* ---------- cards ---------- */
+function itemCard(it) {
+  const c = cls(it.classId);
+  return `<label class="card ${it.done ? 'done' : ''}">
+    <input type="checkbox" data-act="toggleItem" data-id="${it.id}" ${it.done ? 'checked' : ''}>
+    <span class="body"><span class="tag"><i style="background:${c.color}"></i>${esc(c.name)}</span>
+    <b>${esc(it.title)}</b>
+    <small>${fmt(it.due)}${it.time ? ' · ' + it.time : ''}${it.remind ? ' · reminder on' : ''}</small>
+    ${it.notes ? `<small>${esc(it.notes)}</small>` : ''}</span>
+    <button type="button" class="x" data-act="delItem" data-id="${it.id}" aria-label="Delete assignment">×</button></label>`;
+}
+function stepCard(g, s) {
+  return `<label class="card ${s.done ? 'done' : ''}">
+    <input type="checkbox" data-act="toggleStep" data-g="${g.id}" data-id="${s.id}" ${s.done ? 'checked' : ''}>
+    <span class="body"><span class="tag"><i style="background:var(--accent)"></i>Goal · ${esc(g.area)}</span>
+    <b>${esc(s.label)}</b><small>${esc(g.title)}</small></span></label>`;
+}
+const list = (arr, fn, msg) => arr.length ? arr.map(fn).join('') : `<p class="empty">${msg}</p>`;
+const byDue = (a, b) => (a.due + (a.time || '99')).localeCompare(b.due + (b.time || '99'));
+function stepsOn(day) {
+  const out = [];
+  S.goals.forEach(g => g.steps.forEach(s => { if (s.date === day) out.push([g, s]); }));
+  return out;
+}
+
+/* ---------- views ---------- */
+function vToday() {
+  const t = today();
+  const open = S.items.filter(i => !i.done);
+  const overdue = open.filter(i => i.due < t).sort(byDue);
+  const dueToday = S.items.filter(i => i.due === t).sort(byDue);
+  const soon = open.filter(i => i.due > t && i.due <= addDays(t, 7)).sort(byDue);
+  const steps = stepsOn(t);
+  return `<div class="bar"><div><h2>Today</h2><small>${fmt(t)}</small></div>
+    <button class="btn" data-act="form" data-type="item">+ Assignment</button></div>
+    ${overdue.length ? `<p class="sec">Overdue · ${overdue.length}</p>${overdue.map(itemCard).join('')}` : ''}
+    <p class="sec">Due today · ${dueToday.length}</p>${list(dueToday, itemCard, 'Nothing due today.')}
+    ${steps.length ? `<p class="sec">Goal steps today</p>${steps.map(([g, s]) => stepCard(g, s)).join('')}` : ''}
+    <p class="sec">Coming up (next 7 days)</p>${list(soon, itemCard, 'Nothing coming up.')}`;
+}
+function vWeek() {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - (d.getDay() + 6) % 7 + weekOff * 7);
+  const start = ymd(d), t = today();
+  let cols = '';
+  for (let i = 0; i < 7; i++) {
+    const day = addDays(start, i);
+    const its = S.items.filter(x => x.due === day).sort(byDue);
+    const st = stepsOn(day);
+    const dd = new Date(day + 'T00:00');
+    cols += `<section class="day ${day === t ? 'today' : ''}"><h3><span>${dd.toLocaleDateString(undefined, { weekday: 'short' })}</span><span>${dd.getDate()}</span></h3>
+      ${its.map(itemCard).join('')}${st.map(([g, s]) => stepCard(g, s)).join('')}</section>`;
+  }
+  return `<div class="bar"><h2>Week of ${fmt(start)}</h2><div style="display:flex;gap:8px">
+    <button class="btn ghost" data-act="week" data-n="-1" aria-label="Previous week">‹</button>
+    <button class="btn ghost" data-act="week" data-n="0">This week</button>
+    <button class="btn ghost" data-act="week" data-n="1" aria-label="Next week">›</button>
+    <button class="btn" data-act="form" data-type="item">+ Assignment</button></div></div>
+    <div class="week">${cols}</div>`;
+}
+function vClasses() {
+  const cards = S.classes.map(c => {
+    const its = S.items.filter(i => i.classId === c.id);
+    const due = its.filter(i => !i.done).length;
+    const isOpen = openClass === c.id;
+    const notes = S.notes.filter(n => n.classId === c.id);
+    return `<div class="panel ${isOpen ? 'open' : ''}">
+      <button class="cls" data-act="openClass" data-id="${c.id}"><span class="stripe" style="background:${c.color}"></span>
+      <span style="flex:1"><b>${esc(c.name)}</b><br><small>${esc([c.teacher, c.period, c.room].filter(Boolean).join(' · ') || 'Tap to see homework & notes')}</small></span>
+      <span style="text-align:right"><b style="font-size:20px">${due}</b><br><small>due</small></span></button>
+      ${isOpen ? `<p class="sec">Homework</p>${list(its.sort(byDue), itemCard, 'No homework yet.')}
+        <p class="sec">Notes</p>${list(notes, noteCard, 'No notes yet.')}
+        <div class="actions"><button class="btn ghost" data-act="delClass" data-id="${c.id}">Delete class</button>
+        <button class="btn ghost" data-act="form" data-type="note" data-class="${c.id}">+ Note</button>
+        <button class="btn" data-act="form" data-type="item" data-class="${c.id}">+ Assignment</button></div>` : ''}</div>`;
+  }).join('');
+  return `<div class="bar"><h2>My Classes</h2><button class="btn" data-act="form" data-type="class">+ Add class</button></div>
+    ${S.classes.length ? `<div class="grid">${cards}</div>` : '<p class="empty">Add your classes first. Then your homework can be sorted by class.</p>'}`;
+}
+function vGoals() {
+  const cards = S.goals.map(g => {
+    const n = g.steps.filter(s => s.done).length, tot = g.steps.length;
+    const pct = tot ? Math.round(n / tot * 100) : 0;
+    const isOpen = openGoal === g.id;
+    const notes = S.notes.filter(x => x.goalId === g.id);
+    return `<div class="panel ${isOpen ? 'open' : ''}">
+      <button class="cls" style="flex-direction:column;align-items:stretch;gap:8px" data-act="openGoal" data-id="${g.id}">
+      <span style="display:flex;justify-content:space-between"><span class="pill">${esc(g.area)}</span><small>${g.deadline ? 'by ' + fmt(g.deadline) : ''}</small></span>
+      <b style="font-size:17px">${esc(g.title)}</b>
+      <span style="display:flex;gap:10px;align-items:center"><span class="prog"><span style="width:${pct}%"></span></span><small>${n} of ${tot}</small></span></button>
+      ${isOpen ? `<p class="sec">Steps</p>
+        ${tot ? g.steps.map(s => `<label class="card ${s.done ? 'done' : ''}"><input type="checkbox" data-act="toggleStep" data-g="${g.id}" data-id="${s.id}" ${s.done ? 'checked' : ''}>
+          <span class="body"><b>${esc(s.label)}</b>${s.date ? `<small>${fmt(s.date)}</small>` : ''}</span>
+          <button type="button" class="x" data-act="delStep" data-g="${g.id}" data-id="${s.id}" aria-label="Delete step">×</button></label>`).join('') : '<p class="empty">Break this goal into small steps.</p>'}
+        <p class="sec">Notes</p>${list(notes, noteCard, 'No notes yet.')}
+        <div class="actions"><button class="btn ghost" data-act="delGoal" data-id="${g.id}">Delete goal</button>
+        <button class="btn ghost" data-act="form" data-type="note" data-goal="${g.id}">+ Note</button>
+        <button class="btn" data-act="form" data-type="step" data-goal="${g.id}">+ Step</button></div>` : ''}</div>`;
+  }).join('');
+  return `<div class="bar"><h2>Goals</h2><button class="btn" data-act="form" data-type="goal">+ New goal</button></div>
+    ${S.goals.length ? `<div class="grid">${cards}</div>` : '<p class="empty">Set a goal for school, the gym, your diet, or anything else, then add steps toward it.</p>'}`;
+}
+function noteCard(n) {
+  const where = n.classId ? cls(n.classId).name : n.goalId ? (goal(n.goalId) || {}).title : '';
+  return `<div class="note"><div>${where ? `<small>${esc(where)} · </small>` : ''}<small>${fmt(n.date)}</small><br>${esc(n.text)}</div>
+    <button class="x" data-act="delNote" data-id="${n.id}" aria-label="Delete note">×</button></div>`;
+}
+function vNotes() {
+  const all = [...S.notes].sort((a, b) => b.date.localeCompare(a.date));
+  return `<div class="bar"><h2>Notes</h2><button class="btn" data-act="form" data-type="note">+ Note</button></div>
+    ${list(all, noteCard, 'No notes yet. Notes can be on their own or attached to a class or goal.')}`;
+}
+
+/* ---------- forms ---------- */
+const opt = (arr, sel) => arr.map(([v, l]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(l)}</option>`).join('');
+function openForm(type, ds) {
+  const classOpts = [['', 'No class'], ...S.classes.map(c => [c.id, c.name])];
+  let f = '';
+  if (type === 'item') f = `<h2>New assignment</h2>
+    <label>What's the assignment?<input name="title" required></label>
+    <label>Class<select name="classId">${opt(classOpts, ds.class || '')}</select></label>
+    <div class="row"><label>Due date<input type="date" name="due" value="${today()}" required></label>
+    <label>Time<input type="time" name="time" value="23:59"></label></div>
+    <label>Reminder<select name="remind">${opt([['', 'None'], ['60', '1 hour before'], ['240', '4 hours before'], ['1440', '1 day before'], ['-1', 'Morning of (7 AM)']], '240')}</select></label>
+    <label>Notes<textarea name="notes" rows="2"></textarea></label>`;
+  if (type === 'class') f = `<h2>Add class</h2>
+    <label>Class name<input name="name" required></label>
+    <label>Teacher<input name="teacher"></label>
+    <div class="row"><label>Period / time<input name="period"></label><label>Room<input name="room"></label></div>
+    <label>Color<select name="color">${opt(COLORS.map((c, i) => [c, ['Blue', 'Orange', 'Purple', 'Teal', 'Amber', 'Pink', 'Green', 'Sky'][i]]), COLORS[S.classes.length % COLORS.length])}</select></label>`;
+  if (type === 'goal') f = `<h2>New goal</h2>
+    <label>Goal<input name="title" required placeholder="e.g. Bench 185 by March"></label>
+    <label>Area<input name="area" list="areas" value="School" required><datalist id="areas"><option>School</option><option>Gym</option><option>Diet</option><option>Personal</option></datalist></label>
+    <label>Deadline (optional)<input type="date" name="deadline"></label>`;
+  if (type === 'step') f = `<h2>New step</h2>
+    <label>Step<input name="label" required></label>
+    <label>Date (optional, shows on your week)<input type="date" name="date"></label>`;
+  if (type === 'note') f = `<h2>New note</h2>
+    <label>Note<textarea name="text" rows="5" required></textarea></label>
+    <label>Attach to<select name="attach">${opt([['', 'Nothing'], ...S.classes.map(c => ['c:' + c.id, 'Class: ' + c.name]), ...S.goals.map(g => ['g:' + g.id, 'Goal: ' + g.title])], ds.class ? 'c:' + ds.class : ds.goal ? 'g:' + ds.goal : '')}</select></label>`;
+  const form = $('#form');
+  form.innerHTML = f + `<div class="actions"><button type="button" class="btn ghost" data-act="close">Cancel</button><button class="btn">Save</button></div>`;
+  form.onsubmit = e => {
+    e.preventDefault();
+    const v = Object.fromEntries(new FormData(form));
+    if (type === 'item') {
+      S.items.push({ id: uid(), title: v.title, classId: v.classId, due: v.due, time: v.time, remind: v.remind ? +v.remind : null, notes: v.notes, done: false });
+      if (v.remind && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+    }
+    if (type === 'class') S.classes.push({ id: uid(), name: v.name, teacher: v.teacher, period: v.period, room: v.room, color: v.color });
+    if (type === 'goal') { const g = { id: uid(), title: v.title, area: v.area, deadline: v.deadline, steps: [] }; S.goals.push(g); openGoal = g.id; }
+    if (type === 'step') goal(ds.goal).steps.push({ id: uid(), label: v.label, date: v.date, done: false });
+    if (type === 'note') S.notes.push({ id: uid(), text: v.text, date: today(), classId: v.attach.startsWith('c:') ? v.attach.slice(2) : '', goalId: v.attach.startsWith('g:') ? v.attach.slice(2) : '' });
+    $('#dlg').close(); save();
+  };
+  $('#dlg').showModal();
+  form.querySelector('input,textarea').focus();
+}
+
+/* ---------- actions ---------- */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const d = el.dataset, a = d.act;
+  if (a === 'tab') { tab = d.id; return render(); }
+  if (a === 'form') return openForm(d.type, d);
+  if (a === 'close') return $('#dlg').close();
+  if (a === 'week') { weekOff = d.n === '0' ? 0 : weekOff + +d.n; return render(); }
+  if (a === 'openClass') { openClass = openClass === d.id ? null : d.id; return render(); }
+  if (a === 'openGoal') { openGoal = openGoal === d.id ? null : d.id; return render(); }
+  if (a === 'toggleItem') { const it = S.items.find(i => i.id === d.id); it.done = el.checked; return save(); }
+  if (a === 'toggleStep') { const s = goal(d.g).steps.find(x => x.id === d.id); s.done = el.checked; return save(); }
+  if (a.startsWith('del')) {
+    e.preventDefault();
+    if (!confirm('Delete this?')) return;
+    if (a === 'delItem') S.items = S.items.filter(i => i.id !== d.id);
+    if (a === 'delNote') S.notes = S.notes.filter(n => n.id !== d.id);
+    if (a === 'delStep') { const g = goal(d.g); g.steps = g.steps.filter(s => s.id !== d.id); }
+    if (a === 'delClass') { S.classes = S.classes.filter(c => c.id !== d.id); S.items.forEach(i => { if (i.classId === d.id) i.classId = ''; }); }
+    if (a === 'delGoal') S.goals = S.goals.filter(g => g.id !== d.id);
+    save();
+  }
+});
+
+/* ---------- reminders (work while the app is open in a tab) ---------- */
+function checkReminders() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = Date.now(); let changed = false;
+  S.items.forEach(it => {
+    if (!it.remind || it.done || it.notified) return;
+    const due = new Date(it.due + 'T' + (it.time || '23:59'));
+    const at = it.remind === -1 ? new Date(it.due + 'T07:00') : new Date(due - it.remind * 60000);
+    if (now >= at) {
+      new Notification('Due soon: ' + it.title, { body: cls(it.classId).name + ' · ' + fmt(it.due) + (it.time ? ' ' + it.time : '') });
+      it.notified = true; changed = true;
+    }
+  });
+  if (changed) save();
+}
+setInterval(checkReminders, 30000);
+
+/* ---------- render ---------- */
+function render() {
+  $('#tabs').innerHTML = TABS.map(([id, l]) => `<button data-act="tab" data-id="${id}" class="${tab === id ? 'on' : ''}">${l}</button>`).join('');
+  $('#view').innerHTML = { today: vToday, week: vWeek, classes: vClasses, goals: vGoals, notes: vNotes }[tab]();
+}
+render(); checkReminders();
+</script>
+</body>
+</html>
