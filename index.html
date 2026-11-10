@@ -225,8 +225,17 @@ function openForm(type, ds) {
     <label>Attach to<select name="attach">${opt([['', 'Nothing'], ...S.classes.map(c => ['c:' + c.id, 'Class: ' + c.name]), ...S.goals.map(g => ['g:' + g.id, 'Goal: ' + g.title])], ds.class ? 'c:' + ds.class : ds.goal ? 'g:' + ds.goal : '')}</select></label>`;
   const form = $('#form');
   form.innerHTML = f + `<div class="actions"><button type="button" class="btn ghost" data-act="close">Cancel</button><button class="btn">Save</button></div>`;
+  form.noValidate = true;
   form.onsubmit = e => {
     e.preventDefault();
+    // Show our own message for empty required boxes (some browsers hide the built-in one)
+    const miss = [...form.querySelectorAll('[required]')].find(x => !x.value.trim());
+    form.querySelector('.err')?.remove();
+    if (miss) {
+      miss.insertAdjacentHTML('afterend', '<small class="err" style="color:#B42318;font-weight:600">Please fill this in.</small>');
+      miss.focus();
+      return;
+    }
     const v = Object.fromEntries(new FormData(form));
     if (type === 'item') {
       S.items.push({ id: uid(), title: v.title, classId: v.classId, due: v.due, time: v.time, remind: v.remind ? +v.remind : null, notes: v.notes, done: false });
