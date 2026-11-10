@@ -69,7 +69,7 @@ const KEY = 'hpgt-v1';
 const COLORS = ['#2F5BEA','#C2410C','#7C3AED','#0F766E','#B45309','#BE185D','#4D7C0F','#0369A1'];
 const TABS = [['today','Today'],['week','Week'],['classes','Classes'],['goals','Goals'],['notes','Notes']];
 let S = JSON.parse(localStorage.getItem(KEY) || 'null') || { classes: [], items: [], goals: [], notes: [] };
-let tab = 'today', weekOff = 0, openGoal = null, openClass = null;
+let tab = 'today', weekOff = 0, openGoal = null, openClass = null, armed = null;
 
 const $ = s => document.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -256,7 +256,14 @@ document.addEventListener('click', e => {
   if (a === 'toggleStep') { const s = goal(d.g).steps.find(x => x.id === d.id); s.done = el.checked; return save(); }
   if (a.startsWith('del')) {
     e.preventDefault();
-    if (!confirm('Delete this?')) return;
+    // Two taps to delete (pop-up confirm boxes are blocked in some browsers)
+    if (armed !== el) {
+      armed = el;
+      el.textContent = el.classList.contains('x') ? 'Delete?' : 'Tap again to delete';
+      setTimeout(() => { if (armed === el) { armed = null; render(); } }, 3000);
+      return;
+    }
+    armed = null;
     if (a === 'delItem') S.items = S.items.filter(i => i.id !== d.id);
     if (a === 'delNote') S.notes = S.notes.filter(n => n.id !== d.id);
     if (a === 'delStep') { const g = goal(d.g); g.steps = g.steps.filter(s => s.id !== d.id); }
