@@ -69,7 +69,7 @@ const KEY = 'hpgt-v1';
 const COLORS = ['#2F5BEA','#C2410C','#7C3AED','#0F766E','#B45309','#BE185D','#4D7C0F','#0369A1'];
 const TABS = [['today','Today'],['week','Week'],['classes','Classes'],['goals','Goals'],['notes','Notes']];
 let S = JSON.parse(localStorage.getItem(KEY) || 'null') || { classes: [], items: [], goals: [], notes: [] };
-let tab = 'today', weekOff = 0, openGoal = null, openClass = null, armed = null;
+let tab = 'today', weekOff = 0, openGoal = null, openClass = null, armed = null, showDone = {};
 
 const $ = s => document.querySelector(s);
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -156,7 +156,9 @@ function vClasses() {
       <button class="cls" data-act="openClass" data-id="${c.id}"><span class="stripe" style="background:${c.color}"></span>
       <span style="flex:1"><b>${esc(c.name)}</b><br><small>${esc([c.teacher, c.period, c.room].filter(Boolean).join(' · ') || 'Tap to see homework & notes')}</small></span>
       <span style="text-align:right"><b style="font-size:20px">${due}</b><br><small>due</small></span></button>
-      ${isOpen ? `<p class="sec">Homework</p>${list(its.sort(byDue), itemCard, 'No homework yet.')}
+      ${isOpen ? `<p class="sec">Homework</p>${list(its.filter(i => !i.done).sort(byDue), itemCard, its.length ? 'All caught up!' : 'No homework yet.')}
+        ${its.length > due ? `<button class="btn ghost" data-act="showDone" data-id="${c.id}">${showDone[c.id] ? 'Hide' : 'Show'} finished (${its.length - due})</button>
+          <div style="margin-top:8px">${showDone[c.id] ? its.filter(i => i.done).sort(byDue).map(itemCard).join('') : ''}</div>` : ''}
         <p class="sec">Notes</p>${list(notes, noteCard, 'No notes yet.')}
         <div class="actions"><button class="btn ghost" data-act="delClass" data-id="${c.id}">Delete class</button>
         <button class="btn ghost" data-act="form" data-type="note" data-class="${c.id}">+ Note</button>
@@ -264,6 +266,7 @@ document.addEventListener('click', e => {
   if (a === 'form') return openForm(d.type, d);
   if (a === 'close') return $('#dlg').close();
   if (a === 'week') { weekOff = d.n === '0' ? 0 : weekOff + +d.n; return render(); }
+  if (a === 'showDone') { showDone[d.id] = !showDone[d.id]; return render(); }
   if (a === 'openClass') { openClass = openClass === d.id ? null : d.id; return render(); }
   if (a === 'openGoal') { openGoal = openGoal === d.id ? null : d.id; return render(); }
   if (a === 'toggleItem') { const it = S.items.find(i => i.id === d.id); it.done = el.checked; return save(); }
