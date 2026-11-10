@@ -81,7 +81,10 @@ const addDays = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDat
 const fmt = s => s ? new Date(s + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 const cls = id => S.classes.find(c => c.id === id) || { name: 'No class', color: '#8A8A85' };
 const goal = id => S.goals.find(g => g.id === id);
-function save() { localStorage.setItem(KEY, JSON.stringify(S)); render(); }
+function save() { localStorage.setItem(KEY, JSON.stringify(S)); render(); window.cloudSave && window.cloudSave(S); }
+// Used by the sync code below: get the current data, or replace it with data from the cloud
+window.getState = () => S;
+window.applyRemote = d => { S = d; localStorage.setItem(KEY, JSON.stringify(S)); render(); };
 
 /* ---------- cards ---------- */
 function itemCard(it) {
@@ -310,7 +313,11 @@ function render() {
 /* ---------- backup & restore ---------- */
 let pendingRestore = null, backupMsg = '';
 function vBackup() {
-  return `<div class="panel" style="margin-top:32px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+  const u = window.cloudUser;
+  const sync = `<div class="panel" style="margin-top:32px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+    <div><b>Sync</b><br><small>${u ? esc(window.syncMsg || 'Synced') + ' · signed in as ' + esc(u.email) : esc(window.syncMsg || 'Sign in to keep your laptop and phone in sync.')}</small></div>
+    ${u ? '<button class="btn ghost" data-act="signout">Sign out</button>' : '<button class="btn" data-act="signin">Sign in with Google</button>'}</div>`;
+  return sync + `<div class="panel" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
     <div><b>Backup</b><br><small>${esc(backupMsg) || 'Your data is saved only in this browser. Download a backup now and then.'}</small></div>
     ${pendingRestore
       ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><small>Replace everything here with this backup?</small>
@@ -344,6 +351,70 @@ document.addEventListener('change', e => {
   });
 });
 render(); checkReminders();
+</script>
+<script type="module">
+/* ---------- cloud sync with Firebase ---------- */
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+
+// These settings are meant to be public; the database rules keep each person's data private.
+const app = initializeApp({
+  apiKey: 'AIzaSyD8qtfmylH1BYjjED0I7EN70-opsnE-Ccg',
+  authDomain: 'homework-planner-gt.firebaseapp.com',
+  projectId: 'homework-planner-gt',
+  storageBucket: 'homework-planner-gt.firebasestorage.app',
+  messagingSenderId: '269649963740',
+  appId: '1:269649963740:web:73133bc7fa5dcd0372a219'
+});
+const auth = getAuth(app), db = getFirestore(app);
+let ref = null, unsub = null, timer = null, pending = false;
+
+function status(m) { window.syncMsg = m; render(); }
+
+// Save to the cloud a moment after each change
+window.cloudSave = data => {
+  if (!ref) return;
+  pending = true; clearTimeout(timer);
+  timer = setTimeout(() => {
+    setDoc(ref, { data: JSON.stringify(data), updated: Date.now() })
+      .then(() => { pending = false; status('Synced'); })
+      .catch(e => { pending = false; status('Sync error: ' + e.code); });
+  }, 400);
+};
+
+onAuthStateChanged(auth, async user => {
+  if (unsub) { unsub(); unsub = null; }
+  window.cloudUser = user;
+  ref = user ? doc(db, 'users', user.uid) : null;
+  if (!user) return status('');
+  status('Syncing…');
+  try {
+    const snap = await getDoc(ref);
+    // First sign-in anywhere: upload what's in this browser
+    if (!snap.exists()) await setDoc(ref, { data: JSON.stringify(getState()), updated: Date.now() });
+    // Listen for changes made on your other devices
+    unsub = onSnapshot(ref, s => {
+      if (!s.exists() || s.metadata.hasPendingWrites || pending) return;
+      const remote = s.data().data;
+      if (remote !== JSON.stringify(getState())) applyRemote(JSON.parse(remote));
+      status('Synced');
+    }, e => status('Sync error: ' + e.code));
+  } catch (e) { status('Sync error: ' + e.code); }
+});
+
+document.addEventListener('click', async e => {
+  const a = e.target.closest('[data-act]')?.dataset.act;
+  if (a === 'signin') {
+    const p = new GoogleAuthProvider();
+    try { await signInWithPopup(auth, p); }
+    catch (err) {
+      if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment', 'auth/cancelled-popup-request'].includes(err.code)) signInWithRedirect(auth, p);
+      else if (err.code !== 'auth/popup-closed-by-user') status('Sign-in problem: ' + err.code);
+    }
+  }
+  if (a === 'signout') signOut(auth);
+});
 </script>
 </body>
 </html>
