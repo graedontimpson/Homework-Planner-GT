@@ -302,8 +302,45 @@ setInterval(checkReminders, 30000);
 /* ---------- render ---------- */
 function render() {
   $('#tabs').innerHTML = TABS.map(([id, l]) => `<button data-act="tab" data-id="${id}" class="${tab === id ? 'on' : ''}">${l}</button>`).join('');
-  $('#view').innerHTML = { today: vToday, week: vWeek, classes: vClasses, goals: vGoals, notes: vNotes }[tab]();
+  $('#view').innerHTML = { today: vToday, week: vWeek, classes: vClasses, goals: vGoals, notes: vNotes }[tab]() + vBackup();
 }
+
+/* ---------- backup & restore ---------- */
+let pendingRestore = null, backupMsg = '';
+function vBackup() {
+  return `<div class="panel" style="margin-top:32px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+    <div><b>Backup</b><br><small>${esc(backupMsg) || 'Your data is saved only in this browser. Download a backup now and then.'}</small></div>
+    ${pendingRestore
+      ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><small>Replace everything here with this backup?</small>
+         <button class="btn ghost" data-act="restoreCancel">Cancel</button><button class="btn" data-act="restoreYes">Replace</button></div>`
+      : `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" data-act="backup">Download backup</button>
+         <label class="btn ghost" style="display:inline-flex;align-items:center;cursor:pointer">Restore backup<input type="file" accept=".json,application/json" id="restore" hidden></label></div>`}
+  </div>`;
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act]')?.dataset.act;
+  if (a === 'backup') {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = 'homework-planner-backup-' + today() + '.json';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    backupMsg = 'Backup downloaded. Keep it somewhere safe, like Google Drive.'; render();
+  }
+  if (a === 'restoreCancel') { pendingRestore = null; render(); }
+  if (a === 'restoreYes') { S = pendingRestore; pendingRestore = null; backupMsg = 'Backup restored.'; save(); }
+});
+document.addEventListener('change', e => {
+  if (e.target.id !== 'restore' || !e.target.files[0]) return;
+  e.target.files[0].text().then(txt => {
+    try {
+      const d = JSON.parse(txt);
+      if (!['classes', 'items', 'goals', 'notes'].every(k => Array.isArray(d[k]))) throw 0;
+      pendingRestore = d; backupMsg = `Backup has ${d.classes.length} classes, ${d.items.length} assignments, ${d.goals.length} goals, ${d.notes.length} notes.`;
+    } catch { backupMsg = 'That file isn’t a Homework Planner backup.'; }
+    render();
+  });
+});
 render(); checkReminders();
 </script>
 </body>
