@@ -95,6 +95,7 @@ function itemCard(it) {
     <b>${esc(it.title)}</b>
     <small>${fmt(it.due)}${it.time ? ' · ' + it.time : ''}${it.remind ? ' · reminder on' : ''}</small>
     ${it.notes ? `<small>${esc(it.notes)}</small>` : ''}</span>
+    <button type="button" class="x" data-act="form" data-type="item" data-edit="${it.id}" aria-label="Edit assignment">✎</button>
     <button type="button" class="x" data-act="delItem" data-id="${it.id}" aria-label="Delete assignment">×</button></label>`;
 }
 function stepCard(g, s) {
@@ -160,7 +161,8 @@ function vClasses() {
         ${its.length > due ? `<button class="btn ghost" data-act="showDone" data-id="${c.id}">${showDone[c.id] ? 'Hide' : 'Show'} finished (${its.length - due})</button>
           <div style="margin-top:8px">${showDone[c.id] ? its.filter(i => i.done).sort(byDue).map(itemCard).join('') : ''}</div>` : ''}
         <p class="sec">Notes</p>${list(notes, noteCard, 'No notes yet.')}
-        <div class="actions"><button class="btn ghost" data-act="delClass" data-id="${c.id}">Delete class</button>
+        <div class="actions" style="flex-wrap:wrap"><button class="btn ghost" data-act="delClass" data-id="${c.id}">Delete class</button>
+        <button class="btn ghost" data-act="form" data-type="class" data-edit="${c.id}">Edit class</button>
         <button class="btn ghost" data-act="form" data-type="note" data-class="${c.id}">+ Note</button>
         <button class="btn" data-act="form" data-type="item" data-class="${c.id}">+ Assignment</button></div>` : ''}</div>`;
   }).join('');
@@ -230,6 +232,13 @@ function openForm(type, ds) {
     <label>Attach to<select name="attach">${opt([['', 'Nothing'], ...S.classes.map(c => ['c:' + c.id, 'Class: ' + c.name]), ...S.goals.map(g => ['g:' + g.id, 'Goal: ' + g.title])], ds.class ? 'c:' + ds.class : ds.goal ? 'g:' + ds.goal : '')}</select></label>`;
   const form = $('#form');
   form.innerHTML = f + `<div class="actions"><button type="button" class="btn ghost" data-act="close">Cancel</button><button class="btn">Save</button></div>`;
+  // Editing: fill the form with the saved values
+  const editing = ds.edit && (type === 'item' ? S.items : S.classes).find(x => x.id === ds.edit);
+  if (editing) {
+    form.querySelector('h2').textContent = type === 'item' ? 'Edit assignment' : 'Edit class';
+    for (const el of form.elements) if (el.name && editing[el.name] != null) el.value = editing[el.name];
+    if (type === 'item') form.elements.remind.value = editing.remind ?? '';
+  }
   form.noValidate = true;
   form.onsubmit = e => {
     e.preventDefault();
@@ -243,10 +252,16 @@ function openForm(type, ds) {
     }
     const v = Object.fromEntries(new FormData(form));
     if (type === 'item') {
-      S.items.push({ id: uid(), title: v.title, classId: v.classId, due: v.due, time: v.time, remind: v.remind ? +v.remind : null, notes: v.notes, done: false });
+      const fields = { title: v.title, classId: v.classId, due: v.due, time: v.time, remind: v.remind ? +v.remind : null, notes: v.notes, notified: false };
+      if (editing) Object.assign(editing, fields);
+      else S.items.push({ id: uid(), ...fields, done: false });
       if (v.remind && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
     }
-    if (type === 'class') { const c = { id: uid(), name: v.name, teacher: v.teacher, period: v.period, room: v.room, color: v.color }; S.classes.push(c); openClass = c.id; }
+    if (type === 'class') {
+      const fields = { name: v.name, teacher: v.teacher, period: v.period, room: v.room, color: v.color };
+      if (editing) Object.assign(editing, fields);
+      else { const c = { id: uid(), ...fields }; S.classes.push(c); openClass = c.id; }
+    }
     if (type === 'goal') { const g = { id: uid(), title: v.title, area: v.area, deadline: v.deadline, steps: [] }; S.goals.push(g); openGoal = g.id; }
     if (type === 'step') goal(ds.goal).steps.push({ id: uid(), label: v.label, date: v.date, done: false });
     if (type === 'note') S.notes.push({ id: uid(), text: v.text, date: today(), classId: v.attach.startsWith('c:') ? v.attach.slice(2) : '', goalId: v.attach.startsWith('g:') ? v.attach.slice(2) : '' });
