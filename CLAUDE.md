@@ -21,7 +21,8 @@ Mr. Zitting tracks progress through this GitHub repo's commit history, so make s
 - Deleting takes two taps ("Tap again to delete"). Don't use `confirm()` or `alert()`, because the Claude app's built-in browser blocks them.
 - Required form fields show a custom "Please fill this in" message. The form uses `noValidate` because some browsers hide the built-in validation message.
 - Backup and restore: download all data as a JSON file and load it back.
-- Reminders use the browser Notification API and are checked every 30 seconds. They only work while the app is open in a tab, and they don't work on iPhone. Push notifications would be the next step to fix this.
+- Reminders: while the app is open, the browser Notification API checks every 30 seconds. Push reminders work when the app is closed: the "Push reminders" panel subscribes the device (`sw.js` shows the message), and `.github/workflows/reminders.yml` runs `.github/reminders/send.mjs` every 5 minutes to send them. On iPhone, push only works after Add to Home Screen (`manifest.json`). A device with push on skips the in-tab check so reminders don't show twice.
+- Push needs two GitHub repo secrets: `FIREBASE_SERVICE_ACCOUNT` (the service account JSON from Firebase) and `VAPID_PRIVATE_KEY`. The VAPID public key is in both `index.html` and `send.mjs`.
 
 ## Data
 - All data lives in one object, `S = { classes, items, goals, notes }`, saved in localStorage under the key `hpgt-v1`.
@@ -34,7 +35,7 @@ Mr. Zitting tracks progress through this GitHub repo's commit history, so make s
 ## Sync (Firebase)
 - Firebase project: `homework-planner-gt` (free Spark plan). Sign-in is Google only.
 - The Firebase web config in `index.html` is meant to be public. The Firestore rules are what keep data private.
-- Firestore stores one document per user at `users/{uid}` with the fields `{ data: JSON string of S, updated }`.
+- Firestore stores one document per user at `users/{uid}` with the fields `{ data: JSON string of S, updated, subs: {deviceId: push subscription + tz}, sent: {"itemId@time": when} }`. Saves use `merge: true` so `subs` and `sent` aren't erased.
 - Rules: a user can read and write only `users/{their uid}`.
 - `graedontimpson.github.io` is listed as an authorized domain in Firebase Authentication.
 - The sync code is the `<script type="module">` at the bottom of `index.html`, using Firebase JS SDK 11.0.2 from gstatic.
@@ -46,7 +47,6 @@ A design canvas made in Claude has mockups of the Week, Today, Add assignment, C
 - Each class gets its own color.
 
 ## Ideas for later
-- Push notifications, so reminders work when the app is closed and on iPhone.
 - A progress page to share with teachers.
 - Editing goals, steps and notes (right now only classes and assignments can be edited).
 

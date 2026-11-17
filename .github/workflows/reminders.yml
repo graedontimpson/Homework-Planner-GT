@@ -1,0 +1,23 @@
+name: Send push reminders
+on:
+  schedule:
+    - cron: '*/5 * * * *' # every 5 minutes (GitHub sometimes runs it a bit late)
+  workflow_dispatch: # lets you run it by hand from the Actions tab
+concurrency: reminders
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: .github/reminders
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: node send.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
