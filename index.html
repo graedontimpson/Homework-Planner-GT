@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Homework Planner GT</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#2F5BEA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -308,6 +311,7 @@ document.addEventListener('click', e => {
 /* ---------- reminders (work while the app is open in a tab) ---------- */
 function checkReminders() {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (localStorage.getItem('hpgt-push') === '1') return; // push reminders handle this device
   const now = Date.now(); let changed = false;
   S.items.forEach(it => {
     if (!it.remind || it.done || it.notified) return;
@@ -335,7 +339,15 @@ function vBackup() {
   const sync = `<div class="panel" style="margin-top:32px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
     <div><b>Sync</b><br><small>${u ? esc(window.syncMsg || 'Synced') + ' · signed in as ' + esc(u.email) : esc(window.syncMsg || 'Sign in to keep your laptop and phone in sync.')}</small></div>
     ${u ? '<button class="btn ghost" data-act="signout">Sign out</button>' : '<button class="btn" data-act="signin">Sign in with Google</button>'}</div>`;
-  return sync + `<div class="panel" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+  const iphone = /iPhone|iPad/.test(navigator.userAgent), app = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  const pushOn = localStorage.getItem('hpgt-push') === '1';
+  const pushText = window.pushMsg || (!('PushManager' in window) ? (iphone && !app ? 'On iPhone: tap Share → Add to Home Screen, then open the app from your Home Screen to turn these on.' : 'This browser can’t get push reminders.')
+    : !u ? 'Sign in first, so reminders can reach you when the app is closed.'
+    : pushOn ? 'On for this device. Reminders arrive within about 5–15 minutes of their time.' : 'Get reminders even when the app is closed.');
+  const push = `<div class="panel" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+    <div><b>Push reminders</b><br><small>${esc(pushText)}</small></div>
+    ${'PushManager' in window && u ? (pushOn ? '<button class="btn ghost" data-act="pushOff">Turn off</button>' : '<button class="btn" data-act="pushOn">Turn on</button>') : ''}</div>`;
+  return sync + push + `<div class="panel" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
     <div><b>Backup</b><br><small>${esc(backupMsg) || 'Your data is saved only in this browser. Download a backup now and then.'}</small></div>
     ${pendingRestore
       ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><small>Replace everything here with this backup?</small>
@@ -374,7 +386,7 @@ render(); checkReminders();
 /* ---------- cloud sync with Firebase ---------- */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteField, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
 // These settings are meant to be public; the database rules keep each person's data private.
 const app = initializeApp({
@@ -395,7 +407,7 @@ window.cloudSave = data => {
   if (!ref) return;
   pending = true; clearTimeout(timer);
   timer = setTimeout(() => {
-    setDoc(ref, { data: JSON.stringify(data), updated: Date.now() })
+    setDoc(ref, { data: JSON.stringify(data), updated: Date.now() }, { merge: true }) // merge keeps the push fields
       .then(() => { pending = false; status('Synced'); })
       .catch(e => { pending = false; status('Sync error: ' + e.code); });
   }, 400);
@@ -432,7 +444,37 @@ document.addEventListener('click', async e => {
     }
   }
   if (a === 'signout') signOut(auth);
+  if (a === 'pushOn') pushOn().catch(err => status2('Couldn’t turn on: ' + err.message));
+  if (a === 'pushOff') pushOff().catch(err => status2('Couldn’t turn off: ' + err.message));
 });
+
+/* ---------- push reminders (sent by .github/workflows/reminders.yml) ---------- */
+const VAPID_PUBLIC = 'BAUdwplGKET8vEMS9UEmg51hcgIJrGrLyN1sNDKjGYWcNpxO4K-jGSbCjEtoWMDNRjnS3htATVMF7XTYfCwOu4E';
+const swReady = 'serviceWorker' in navigator ? navigator.serviceWorker.register('sw.js') : null;
+function status2(m) { window.pushMsg = m; render(); }
+const toBytes = s => Uint8Array.from(atob((s + '==='.slice((s.length + 3) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+// A short id for this device's subscription
+async function subKey(endpoint) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(endpoint));
+  return [...new Uint8Array(h)].slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function pushOn() {
+  if (!ref) return status2('Sign in first.');
+  if (await Notification.requestPermission() !== 'granted') return status2('Notifications are blocked. Allow them in your browser settings, then try again.');
+  const reg = await swReady;
+  const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toBytes(VAPID_PUBLIC) });
+  // Save this device's address in your cloud document so the sender can reach it
+  await setDoc(ref, { subs: { [await subKey(sub.endpoint)]: { ...sub.toJSON(), tz: Intl.DateTimeFormat().resolvedOptions().timeZone, added: Date.now() } } }, { merge: true });
+  localStorage.setItem('hpgt-push', '1'); status2('');
+}
+async function pushOff() {
+  const sub = await (await swReady)?.pushManager.getSubscription();
+  if (sub) {
+    if (ref) await updateDoc(ref, { ['subs.' + await subKey(sub.endpoint)]: deleteField() });
+    await sub.unsubscribe();
+  }
+  localStorage.removeItem('hpgt-push'); status2('');
+}
 </script>
 </body>
 </html>
