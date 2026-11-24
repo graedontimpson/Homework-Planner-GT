@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F7F7F5;--card:#fff;--line:#E2E2DD;--ink:#1A1A1A;--muted:#5C5C58;--accent:#2F5BEA;--soft:#EEF2FD}
+:root{--today:#E0362C;--bg:#F7F7F5;--card:#fff;--line:#E2E2DD;--ink:#1A1A1A;--muted:#5C5C58;--accent:#2F5BEA;--soft:#EEF2FD}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,system-ui,sans-serif}
 h1,h2,h3{font-family:'Space Grotesk',Inter,sans-serif;margin:0}
@@ -21,7 +21,7 @@ header h1{font-size:26px}
 #tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px}
 #tabs button{border:0;background:none;padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:500;min-height:44px}
 #tabs button.on{background:var(--accent);color:#fff}
-@media(max-width:640px){#tabs{position:fixed;left:8px;right:8px;bottom:8px;justify-content:space-around;z-index:5;box-shadow:0 4px 16px #0002}#tabs button{padding:10px 3px;font-size:12px}}
+@media(max-width:640px){#tabs{position:fixed;left:8px;right:8px;bottom:8px;justify-content:space-around;z-index:5;box-shadow:0 4px 16px #0002;overflow-x:auto;gap:0}#tabs button{flex:1 0 auto;padding:10px 3px;font-size:11.5px;white-space:nowrap}}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:8px 0 14px}
 .btn{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:0 16px;min-height:44px;font-weight:600;cursor:pointer}
 .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
@@ -68,6 +68,37 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
 .qa{display:flex;gap:8px;margin:4px 0 4px}
 .qa input{flex:1;min-width:0;border:1px solid #CFCFC9;border-radius:12px;padding:10px 14px;min-height:44px;background:#fff}
 .qa input:focus{outline:2px solid var(--accent);border-color:transparent}
+/* calendar */
+.cal-title{font-size:28px}
+.cal-ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.cal-ctl .btn{padding:0 12px}
+.seg{display:inline-flex;background:#E8E8E3;border-radius:10px;padding:3px;margin-right:4px}
+.seg button{border:0;background:none;padding:0 14px;min-height:38px;border-radius:8px;font-weight:600;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px #0002}
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.wd{font-size:12px;font-weight:600;color:var(--muted);text-align:right;padding:8px 10px 4px}
+.mday{border:0;border-top:1px solid var(--line);border-left:1px solid var(--line);background:none;min-height:112px;padding:4px;display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;cursor:pointer;min-width:0}
+.mday:nth-child(7n+1){border-left:0}
+.mday:hover{background:#00000006}
+.mday .num{align-self:flex-end;width:26px;height:26px;display:grid;place-items:center;border-radius:13px;font-weight:600;font-size:14px}
+.mday.out .num{color:#B5B5AF}
+.mday.sel{background:var(--soft)}
+.mday.today .num{background:var(--today);color:#fff}
+.chip{display:block;font-size:12px;padding:1px 6px;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.done{opacity:.5;text-decoration:line-through}
+.more{font-size:11px;color:var(--muted);padding-left:4px}
+.dots{display:none;gap:3px;justify-content:center;flex-wrap:wrap}.dots i{width:6px;height:6px;border-radius:3px}
+.year{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px 24px}
+.ymon{border:0;background:none;text-align:left;cursor:pointer;padding:8px;border-radius:12px}
+.ymon:hover{background:#0000000a}
+.ymon b{display:block;font:700 18px 'Space Grotesk',Inter,sans-serif;margin-bottom:6px}
+.ymon b.cur{color:var(--today)}
+.ygrid{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;text-align:center;row-gap:2px}
+.ygrid span{height:22px;line-height:22px;border-radius:11px;position:relative}
+.ygrid .has::after{content:'';position:absolute;left:50%;bottom:1px;width:4px;height:4px;margin-left:-2px;border-radius:2px;background:var(--accent)}
+.ygrid .today{background:var(--today);color:#fff;font-weight:600}.ygrid .today::after{background:#fff}
+@media(max-width:640px){.mday{min-height:58px;padding:4px 2px}.chips{display:none}.dots{display:flex}.mday .num{align-self:center}.wd{text-align:center;padding:8px 0 4px}
+  .year{grid-template-columns:repeat(2,1fr);gap:8px}.cal-title{font-size:24px}}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
 </style>
@@ -84,7 +115,7 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
 <script>
 const KEY = 'hpgt-v1';
 const COLORS = ['#2F5BEA','#C2410C','#7C3AED','#0F766E','#B45309','#BE185D','#4D7C0F','#0369A1'];
-const TABS = [['today','Today'],['week','Week'],['classes','Classes'],['goals','Goals'],['notes','Notes'],['progress','Progress']];
+const TABS = [['today','Today'],['week','Week'],['calendar','Calendar'],['classes','Classes'],['goals','Goals'],['notes','Notes'],['progress','Progress']];
 let S = JSON.parse(localStorage.getItem(KEY) || 'null') || { classes: [], items: [], goals: [], notes: [] };
 let tab = 'today', weekOff = 0, openGoal = null, openClass = null, armed = null, showDone = {};
 
@@ -95,6 +126,7 @@ const z = n => String(n).padStart(2, '0');
 const ymd = d => d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate());
 const today = () => ymd(new Date());
 const addDays = (s, n) => { const d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n); return ymd(d); };
+let calView = 'month', calMonth = today().slice(0, 7), calSel = today();
 const fmt = s => s ? new Date(s + 'T00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 const cls = id => S.classes.find(c => c.id === id) || { name: 'No class', color: '#8A8A85' };
 const goal = id => S.goals.find(g => g.id === id);
@@ -225,6 +257,43 @@ function vNotes() {
     ${list(all, noteCard, 'No notes yet. Notes can be on their own or attached to a class or goal.')}`;
 }
 
+/* ---------- calendar (month and year views) ---------- */
+// All the days shown in a month grid: full weeks from the Sunday before the 1st to the Saturday after the last day
+function monthDays(ym) {
+  let d = addDays(ym + '-01', -new Date(ym + '-01T00:00').getDay());
+  const out = [];
+  do { for (let i = 0; i < 7; i++) { out.push(d); d = addDays(d, 1); } } while (d.slice(0, 7) === ym);
+  return out;
+}
+function vCalendar() {
+  const t = today(), byDay = {};
+  S.items.forEach(i => (byDay[i.due] ||= []).push(i));
+  Object.values(byDay).forEach(a => a.sort(byDue));
+  const y = calMonth.slice(0, 4), monthName = (ym, o) => new Date(ym + '-01T00:00').toLocaleDateString(undefined, o);
+  const head = `<div class="bar"><h2 class="cal-title">${calView === 'month' ? monthName(calMonth, { month: 'long', year: 'numeric' }) : y}</h2>
+    <div class="cal-ctl"><div class="seg">${['month', 'year'].map(v => `<button data-act="calView" data-id="${v}" class="${calView === v ? 'on' : ''}">${v === 'month' ? 'Month' : 'Year'}</button>`).join('')}</div>
+    <button class="btn ghost" data-act="calMove" data-n="-1" aria-label="Previous">‹</button><button class="btn ghost" data-act="calMove" data-n="0">Today</button><button class="btn ghost" data-act="calMove" data-n="1" aria-label="Next">›</button></div></div>`;
+  if (calView === 'year') return head + `<div class="year">${Array.from({ length: 12 }, (_, k) => {
+    const ym = y + '-' + z(k + 1);
+    return `<button class="ymon" data-act="calGo" data-id="${ym}"><b class="${ym === t.slice(0, 7) ? 'cur' : ''}">${monthName(ym, { month: 'long' })}</b>
+      <span class="ygrid">${['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(l => `<span style="color:var(--muted)">${l}</span>`).join('')}${monthDays(ym).map(d => d.slice(0, 7) !== ym ? '<span></span>' : `<span class="${d === t ? 'today' : ''} ${byDay[d] ? 'has' : ''}">${+d.slice(8)}</span>`).join('')}</span></button>`;
+  }).join('')}</div>`;
+  // Weekday names; Jan 4, 2026 was a Sunday
+  const wd = Array.from({ length: 7 }, (_, i) => new Date(2026, 0, 4 + i).toLocaleDateString(undefined, { weekday: 'short' }));
+  const cells = monthDays(calMonth).map(d => {
+    const its = byDay[d] || [];
+    return `<button class="mday ${d.slice(0, 7) !== calMonth ? 'out' : ''} ${d === t ? 'today' : ''} ${d === calSel ? 'sel' : ''}" data-act="calDay" data-id="${d}" aria-label="${fmt(d)}, ${its.length} due">
+      <span class="num">${+d.slice(8)}</span>
+      <span class="chips">${its.slice(0, 3).map(i => `<span class="chip ${i.done ? 'done' : ''}" style="--c:${cls(i.classId).color}">${esc(i.title)}</span>`).join('')}${its.length > 3 ? `<span class="more">+${its.length - 3} more</span>` : ''}</span>
+      <span class="dots">${its.slice(0, 4).map(i => `<i style="background:${cls(i.classId).color};opacity:${i.done ? .4 : 1}"></i>`).join('')}</span></button>`;
+  }).join('');
+  const sel = byDay[calSel] || [];
+  return head + `<div class="mgrid">${wd.map(w => `<div class="wd">${w}</div>`).join('')}${cells}</div>
+    <div class="bar" style="margin-top:18px"><p class="sec" style="margin:0">${fmt(calSel)} · ${sel.length}</p>
+    <button class="btn ghost" data-act="form" data-type="item" data-due="${calSel}">+ Assignment</button></div>
+    ${list(sel, itemCard, 'Nothing due this day.')}`;
+}
+
 /* ---------- quick add ---------- */
 // Turns text like "bio lab report fri at 3pm" into an assignment
 const qaHint = 'Type a class, a day (fri, tomorrow, 12/3) and a time (at 3pm), then press Enter.';
@@ -317,7 +386,7 @@ function openForm(type, ds) {
   if (type === 'item') f = `<h2>New assignment</h2>
     <label>What's the assignment?<input name="title" required></label>
     <label>Class<select name="classId">${opt(classOpts, ds.class || '')}</select></label>
-    <div class="row"><label>Due date<input type="date" name="due" value="${today()}" required></label>
+    <div class="row"><label>Due date<input type="date" name="due" value="${ds.due || today()}" required></label>
     <label>Time<input type="time" name="time" value="23:59"></label></div>
     <label>Reminder<select name="remind">${opt([['', 'None'], ['60', '1 hour before'], ['240', '4 hours before'], ['1440', '1 day before'], ['-1', 'Morning of (7 AM)']], '240')}</select></label>
     <label>Notes<textarea name="notes" rows="2"></textarea></label>`;
@@ -401,6 +470,15 @@ document.addEventListener('click', e => {
   if (a === 'form') return openForm(d.type, d);
   if (a === 'close') return $('#dlg').close();
   if (a === 'print') return window.print();
+  if (a === 'calView') { calView = d.id; return render(); }
+  if (a === 'calDay') { calSel = d.id; calMonth = d.id.slice(0, 7); return render(); }
+  if (a === 'calGo') { calView = 'month'; calMonth = d.id; calSel = d.id === today().slice(0, 7) ? today() : d.id + '-01'; return render(); }
+  if (a === 'calMove') {
+    if (d.n === '0') { calMonth = today().slice(0, 7); calSel = today(); return render(); }
+    const dt = new Date(calMonth + '-01T00:00'); dt.setMonth(dt.getMonth() + +d.n * (calView === 'year' ? 12 : 1));
+    calMonth = ymd(dt).slice(0, 7); calSel = calMonth === today().slice(0, 7) ? today() : calMonth + '-01';
+    return render();
+  }
   if (a === 'week') { weekOff = d.n === '0' ? 0 : weekOff + +d.n; return render(); }
   if (a === 'showDone') { showDone[d.id] = !showDone[d.id]; return render(); }
   if (a === 'openClass') { openClass = openClass === d.id ? null : d.id; return render(); }
@@ -447,7 +525,7 @@ setInterval(checkReminders, 30000);
 /* ---------- render ---------- */
 function render() {
   $('#tabs').innerHTML = TABS.map(([id, l]) => `<button data-act="tab" data-id="${id}" class="${tab === id ? 'on' : ''}">${l}</button>`).join('');
-  $('#view').innerHTML = { today: vToday, week: vWeek, classes: vClasses, goals: vGoals, notes: vNotes, progress: vProgress }[tab]() + vBackup();
+  $('#view').innerHTML = { today: vToday, week: vWeek, calendar: vCalendar, classes: vClasses, goals: vGoals, notes: vNotes, progress: vProgress }[tab]() + vBackup();
 }
 
 /* ---------- backup & restore ---------- */
