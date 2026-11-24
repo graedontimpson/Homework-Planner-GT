@@ -15,6 +15,7 @@ Mr. Zitting tracks progress through this GitHub repo's commit history, so make s
 ## Features
 - Tabs: Today, Week, Classes, Goals, Notes. On phone-width screens the tab bar sits at the bottom.
 - Assignments have a class, due date and time, a reminder, and notes. They can be edited (✎) or deleted (×).
+- Goals ("Edit goal" button), steps (✎) and notes (✎) can be edited too. All edits reuse the same form as adding, filled in with the saved values.
 - Classes have a teacher, period, room and color, and can be edited. Finished homework is hidden behind a "Show finished" button.
 - Goals have an area (School, Gym, Diet, Personal), a deadline, steps with optional dates, and notes. A progress bar shows how many steps are done.
 - Notes can stand alone or be attached to a class or goal.
@@ -48,7 +49,6 @@ A design canvas made in Claude has mockups of the Week, Today, Add assignment, C
 
 ## Ideas for later
 - A progress page to share with teachers.
-- Editing goals, steps and notes (right now only classes and assignments can be edited).
 
 ## To do
 - Add Mr. Zitting as a collaborator once the owner has his GitHub username.
