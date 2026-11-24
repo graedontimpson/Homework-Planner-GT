@@ -21,7 +21,7 @@ header h1{font-size:26px}
 #tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px}
 #tabs button{border:0;background:none;padding:10px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:500;min-height:44px}
 #tabs button.on{background:var(--accent);color:#fff}
-@media(max-width:640px){#tabs{position:fixed;left:8px;right:8px;bottom:8px;justify-content:space-around;z-index:5;box-shadow:0 4px 16px #0002}#tabs button{padding:10px 6px;font-size:13px}}
+@media(max-width:640px){#tabs{position:fixed;left:8px;right:8px;bottom:8px;justify-content:space-around;z-index:5;box-shadow:0 4px 16px #0002}#tabs button{padding:10px 3px;font-size:12px}}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:8px 0 14px}
 .btn{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:0 16px;min-height:44px;font-weight:600;cursor:pointer}
 .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
@@ -54,6 +54,17 @@ dialog{border:0;border-radius:18px;padding:0;width:min(440px,94vw);box-shadow:0 
 dialog form{padding:20px;display:flex;flex-direction:column;gap:12px}
 dialog label{display:flex;flex-direction:column;gap:5px;font-size:14px;font-weight:600}
 dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radius:10px;padding:10px 12px;min-height:44px;background:#fff;font-weight:400}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+.stats div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stats b{display:block;font:700 26px 'Space Grotesk',Inter,sans-serif}
+.rep-row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.rep-row:last-child{border-bottom:0}
+@media print{
+  body{background:#fff}.wrap{padding:0}
+  header.top,#view>:not(.report),.noprint{display:none!important}
+  .panel,.stats div{break-inside:avoid}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
 </style>
@@ -70,7 +81,7 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
 <script>
 const KEY = 'hpgt-v1';
 const COLORS = ['#2F5BEA','#C2410C','#7C3AED','#0F766E','#B45309','#BE185D','#4D7C0F','#0369A1'];
-const TABS = [['today','Today'],['week','Week'],['classes','Classes'],['goals','Goals'],['notes','Notes']];
+const TABS = [['today','Today'],['week','Week'],['classes','Classes'],['goals','Goals'],['notes','Notes'],['progress','Progress']];
 let S = JSON.parse(localStorage.getItem(KEY) || 'null') || { classes: [], items: [], goals: [], notes: [] };
 let tab = 'today', weekOff = 0, openGoal = null, openClass = null, armed = null, showDone = {};
 
@@ -209,6 +220,36 @@ function vNotes() {
     ${list(all, noteCard, 'No notes yet. Notes can be on their own or attached to a class or goal.')}`;
 }
 
+/* ---------- progress report ---------- */
+function vProgress() {
+  const t = today(), from = addDays(t, -6);
+  // When it was finished; older items without a saved date use their due date
+  const doneOn = it => it.doneAt || it.due;
+  const finished = S.items.filter(it => it.done && doneOn(it) >= from && doneOn(it) <= t).sort((a, b) => doneOn(b).localeCompare(doneOn(a)));
+  const overdue = it => !it.done && it.due < t;
+  const upcoming = S.items.filter(it => !it.done && it.due >= t && it.due <= addDays(t, 6)).length;
+  const groups = [...S.classes, { id: '', name: 'No class', color: '#8A8A85' }]
+    .map(c => ({ c, items: S.items.filter(it => (it.classId || '') === c.id) })).filter(g => g.items.length);
+  const range = d => new Date(d + 'T00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `<div class="report">
+    <div class="bar"><div><h2>Progress report</h2><small>${range(from)} – ${range(t)}, ${t.slice(0, 4)}</small></div>
+      <button class="btn noprint" data-act="print">Save as PDF</button></div>
+    <div class="stats"><div><b>${finished.length}</b><small>Finished this week</small></div>
+      <div><b>${S.items.filter(overdue).length}</b><small>Overdue</small></div>
+      <div><b>${upcoming}</b><small>Due in the next 7 days</small></div></div>
+    <p class="sec">This week's activity</p>
+    <div class="panel">${finished.length ? finished.map(it => `<div class="rep-row"><span class="tag" style="flex:none"><i style="background:${cls(it.classId).color}"></i></span>
+      <span style="flex:1"><b>${esc(it.title)}</b><br><small>${esc(cls(it.classId).name)}</small></span><small>${fmt(doneOn(it))}</small></div>`).join('') : '<p class="empty">Nothing finished in the last 7 days yet.</p>'}</div>
+    <p class="sec">Homework by class</p>
+    ${groups.length ? `<div class="grid">${groups.map(({ c, items }) => {
+      const n = items.filter(it => it.done).length, late = items.filter(overdue);
+      return `<div class="panel"><div style="display:flex;gap:10px;align-items:center"><span class="stripe" style="background:${c.color};height:22px"></span><b style="flex:1">${esc(c.name)}</b><small>${n} of ${items.length} done</small></div>
+        <div style="display:flex;margin:10px 0 4px"><span class="prog"><span style="width:${Math.round(n / items.length * 100)}%;background:${c.color}"></span></span></div>
+        ${late.length ? `<small style="color:#B42318;font-weight:600">${late.length} overdue:</small>${late.map(it => `<br><small>${esc(it.title)} · due ${fmt(it.due)}</small>`).join('')}` : '<small>Nothing overdue</small>'}</div>`;
+    }).join('')}</div>` : '<p class="empty">No assignments yet.</p>'}
+  </div>`;
+}
+
 /* ---------- forms ---------- */
 const opt = (arr, sel) => arr.map(([v, l]) => `<option value="${esc(v)}" ${v === sel ? 'selected' : ''}>${esc(l)}</option>`).join('');
 function openForm(type, ds) {
@@ -300,11 +341,12 @@ document.addEventListener('click', e => {
   if (a === 'tab') { tab = d.id; return render(); }
   if (a === 'form') return openForm(d.type, d);
   if (a === 'close') return $('#dlg').close();
+  if (a === 'print') return window.print();
   if (a === 'week') { weekOff = d.n === '0' ? 0 : weekOff + +d.n; return render(); }
   if (a === 'showDone') { showDone[d.id] = !showDone[d.id]; return render(); }
   if (a === 'openClass') { openClass = openClass === d.id ? null : d.id; return render(); }
   if (a === 'openGoal') { openGoal = openGoal === d.id ? null : d.id; return render(); }
-  if (a === 'toggleItem') { const it = S.items.find(i => i.id === d.id); it.done = el.checked; return save(); }
+  if (a === 'toggleItem') { const it = S.items.find(i => i.id === d.id); it.done = el.checked; it.doneAt = el.checked ? today() : null; return save(); }
   if (a === 'toggleStep') { const s = goal(d.g).steps.find(x => x.id === d.id); s.done = el.checked; return save(); }
   if (a.startsWith('del')) {
     e.preventDefault();
@@ -346,7 +388,7 @@ setInterval(checkReminders, 30000);
 /* ---------- render ---------- */
 function render() {
   $('#tabs').innerHTML = TABS.map(([id, l]) => `<button data-act="tab" data-id="${id}" class="${tab === id ? 'on' : ''}">${l}</button>`).join('');
-  $('#view').innerHTML = { today: vToday, week: vWeek, classes: vClasses, goals: vGoals, notes: vNotes }[tab]() + vBackup();
+  $('#view').innerHTML = { today: vToday, week: vWeek, classes: vClasses, goals: vGoals, notes: vNotes, progress: vProgress }[tab]() + vBackup();
 }
 
 /* ---------- backup & restore ---------- */
