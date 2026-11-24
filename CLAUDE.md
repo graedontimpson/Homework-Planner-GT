@@ -14,6 +14,7 @@ Mr. Zitting tracks progress through this GitHub repo's commit history, so make s
 
 ## Features
 - Tabs: Today, Week, Classes, Goals, Notes, Progress. On phone-width screens the tab bar sits at the bottom.
+- Quick add (top of Today): `parseQuick()` turns text like "bio lab report fri at 3pm" into an assignment. It finds the class (full name, or a 3+ letter word that starts the class name), the day (today/tonight/tomorrow, weekdays, 12/3, dec 3) and time (3pm, 8:30am, noon). With no day it uses tomorrow, with no time 11:59 PM, and the reminder is 4 hours before. A preview line shows the result while typing.
 - Assignments have a class, due date and time, a reminder, and notes. They can be edited (✎) or deleted (×).
 - Goals ("Edit goal" button), steps (✎) and notes (✎) can be edited too. All edits reuse the same form as adding, filled in with the saved values.
 - Classes have a teacher, period, room and color, and can be edited. Finished homework is hidden behind a "Show finished" button.

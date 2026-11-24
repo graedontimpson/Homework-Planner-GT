@@ -65,6 +65,9 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
   .panel,.stats div{break-inside:avoid}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+.qa{display:flex;gap:8px;margin:4px 0 4px}
+.qa input{flex:1;min-width:0;border:1px solid #CFCFC9;border-radius:12px;padding:10px 14px;min-height:44px;background:#fff}
+.qa input:focus{outline:2px solid var(--accent);border-color:transparent}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
 </style>
@@ -136,6 +139,8 @@ function vToday() {
   const steps = stepsOn(t);
   return `<div class="bar"><div><h2>Today</h2><small>${fmt(t)}</small></div>
     <button class="btn" data-act="form" data-type="item">+ Assignment</button></div>
+    <form class="qa" id="qaForm" autocomplete="off"><input id="qa" placeholder="Quick add: bio lab report fri" aria-label="Quick add assignment" enterkeyhint="done"><button class="btn">Add</button></form>
+    <small id="qaPrev">${qaHint}</small>
     ${overdue.length ? `<p class="sec">Overdue · ${overdue.length}</p>${overdue.map(itemCard).join('')}` : ''}
     <p class="sec">Due today · ${dueToday.length}</p>${list(dueToday, itemCard, 'Nothing due today.')}
     ${steps.length ? `<p class="sec">Goal steps today</p>${steps.map(([g, s]) => stepCard(g, s)).join('')}` : ''}
@@ -219,6 +224,60 @@ function vNotes() {
   return `<div class="bar"><h2>Notes</h2><button class="btn" data-act="form" data-type="note">+ Note</button></div>
     ${list(all, noteCard, 'No notes yet. Notes can be on their own or attached to a class or goal.')}`;
 }
+
+/* ---------- quick add ---------- */
+// Turns text like "bio lab report fri at 3pm" into an assignment
+const qaHint = 'Type a class, a day (fri, tomorrow, 12/3) and a time (at 3pm), then press Enter.';
+const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+function parseQuick(text) {
+  const t = today();
+  let words = text.trim().split(/\s+/).filter(Boolean), due = '', time = '', classId = '';
+  const low = i => (words[i] || '').toLowerCase().replace(/[.,!?]+$/, '');
+  const drop = (i, n = 1) => { words.splice(i, n); if (['due', 'on', 'at', 'by', 'next', 'this'].includes(low(i - 1))) words.splice(i - 1, 1); };
+  const fixYear = (m, d) => { let y = +t.slice(0, 4); let s = y + '-' + z(m) + '-' + z(d); if (s < t) s = (y + 1) + '-' + z(m) + '-' + z(d); return s; };
+  for (let i = words.length - 1; i >= 0; i--) {
+    const w = low(i); let m;
+    if (!time && (m = w.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)$/))) { time = z(+m[1] % 12 + (m[3] === 'pm' ? 12 : 0)) + ':' + (m[2] || '00'); drop(i); continue; }
+    if (!time && w === 'noon') { time = '12:00'; drop(i); continue; }
+    if (due) continue;
+    if (w === 'today' || w === 'tonight') { due = t; drop(i); continue; }
+    if (['tomorrow', 'tmrw', 'tmr'].includes(w)) { due = addDays(t, 1); drop(i); continue; }
+    const day = w.length >= 3 ? DAYS.findIndex(d => w.startsWith(d) && ('sunday monday tuesday tues wednesday weds thursday thur thurs friday saturday'.includes(w) || w === d)) : -1;
+    if (day >= 0) { const now = new Date(t + 'T00:00').getDay(); due = addDays(t, ((day - now + 7) % 7) || 7); drop(i); continue; }
+    if ((m = w.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/))) { due = m[3] ? (m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + z(m[1]) + '-' + z(m[2]) : fixYear(+m[1], +m[2]); drop(i); continue; }
+    const mon = MONTHS.findIndex(x => w.length >= 3 && x === w.slice(0, 3) && 'january february march april may june july august september sept october november december'.includes(w));
+    if (mon >= 0 && (m = low(i + 1).match(/^(\d{1,2})(st|nd|rd|th)?$/))) { due = fixYear(mon + 1, +m[1]); drop(i, 2); continue; }
+  }
+  // Class: the full class name, or a word (3+ letters) that starts the class name or one of its words
+  const clean = words.map(w => w.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  let best = null;
+  for (const c of S.classes) {
+    const name = c.name.toLowerCase(), parts = name.split(/\s+/);
+    const full = words.join(' ').toLowerCase().indexOf(name);
+    if (full >= 0 && name.length > 2) { const start = words.join(' ').slice(0, full).split(/\s+/).filter(Boolean).length; best = { c, i: start, n: parts.length, score: 100 + name.length }; break; }
+    clean.forEach((w, i) => { if (w.length >= 3 && (name.startsWith(w) || parts.some(p => p.startsWith(w))) && (!best || w.length > best.score)) best = { c, i, n: 1, score: w.length }; });
+  }
+  if (best) { classId = best.c.id; words.splice(best.i, best.n); }
+  // Drop little words left hanging at the end, like "for" in "read ch 4 for (english)"
+  while (words.length > 1 && ['for', 'in', 'due', 'on', 'at', 'by'].includes(words[words.length - 1].toLowerCase())) words.pop();
+  return { title: words.join(' ') || text.trim(), classId, due: due || addDays(t, 1), time: time || '23:59' };
+}
+function qaPreview() {
+  const v = $('#qa').value.trim(), el = $('#qaPrev');
+  if (!v) { el.textContent = qaHint; return; }
+  const q = parseQuick(v), when = new Date('2000-01-01T' + q.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  el.innerHTML = `Adds <b>${esc(q.title)}</b> · ${esc(q.classId ? cls(q.classId).name : 'No class')} · ${fmt(q.due)} · ${when}`;
+}
+document.addEventListener('input', e => { if (e.target.id === 'qa') qaPreview(); });
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'qaForm') return;
+  e.preventDefault();
+  const v = $('#qa').value.trim(); if (!v) return;
+  S.items.push({ id: uid(), ...parseQuick(v), remind: 240, notes: '', notified: false, done: false });
+  if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  save(); $('#qa').focus();
+});
 
 /* ---------- progress report ---------- */
 function vProgress() {
