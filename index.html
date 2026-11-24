@@ -9,8 +9,12 @@
 <meta name="theme-color" content="#2F5BEA">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<script>try { const t = localStorage.getItem('hpgt-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
 <style>
-:root{--today:#E0362C;--bg:#F7F7F5;--card:#fff;--line:#E2E2DD;--ink:#1A1A1A;--muted:#5C5C58;--accent:#2F5BEA;--soft:#EEF2FD}
+:root{--today:#E0362C;--bg:#F7F7F5;--card:#fff;--line:#E2E2DD;--ink:#1A1A1A;--muted:#5C5C58;--accent:#2F5BEA;--soft:#EEF2FD;--sub:#4A4A46;--hover:#0000000d;--day:#EFEFEB;--track:#E8E8E3;--pilltext:#1F3FAE;--field:#fff;--fieldline:#CFCFC9;--faint:#B5B5AF;--danger:#B42318;color-scheme:light}
+/* Dark mode: follows the device unless the header button picks Light or Dark */
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--today:#FF453A;--bg:#121214;--card:#1D1D20;--line:#2F2F34;--ink:#EDEDEA;--muted:#A3A39D;--accent:#4A6CF0;--soft:#1E2747;--sub:#C4C4BE;--hover:#ffffff14;--day:#18181B;--track:#2F2F34;--pilltext:#AFC0FF;--field:#161618;--fieldline:#3B3B41;--faint:#5C5C5A;--danger:#FF6B5E;color-scheme:dark}}
+:root[data-theme=dark]{--today:#FF453A;--bg:#121214;--card:#1D1D20;--line:#2F2F34;--ink:#EDEDEA;--muted:#A3A39D;--accent:#4A6CF0;--soft:#1E2747;--sub:#C4C4BE;--hover:#ffffff14;--day:#18181B;--track:#2F2F34;--pilltext:#AFC0FF;--field:#161618;--fieldline:#3B3B41;--faint:#5C5C5A;--danger:#FF6B5E;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 Inter,system-ui,sans-serif}
 h1,h2,h3{font-family:'Space Grotesk',Inter,sans-serif;margin:0}
@@ -25,19 +29,19 @@ header h1{font-size:26px}
 .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin:8px 0 14px}
 .btn{border:0;background:var(--accent);color:#fff;border-radius:12px;padding:0 16px;min-height:44px;font-weight:600;cursor:pointer}
 .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-.sec{font-size:13px;font-weight:600;color:#4A4A46;letter-spacing:.4px;text-transform:uppercase;margin:18px 0 8px}
+.sec{font-size:13px;font-weight:600;color:var(--sub);letter-spacing:.4px;text-transform:uppercase;margin:18px 0 8px}
 .card{display:flex;gap:12px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px}
 .card input[type=checkbox]{width:20px;height:20px;margin:2px 0 0;accent-color:var(--accent);flex:none}
 .card .body{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
 .card.done{opacity:.55}.card.done b{text-decoration:line-through}
-.tag{font-size:12px;font-weight:600;color:#4A4A46;display:flex;align-items:center;gap:6px}
+.tag{font-size:12px;font-weight:600;color:var(--sub);display:flex;align-items:center;gap:6px}
 .tag i{width:10px;height:10px;border-radius:5px;display:inline-block}
 small{color:var(--muted);font-size:13px}
 .x{border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;min-width:32px;min-height:32px;border-radius:8px}
-.x:hover{background:#0000000d}
+.x:hover{background:var(--hover)}
 .empty{color:var(--muted);padding:8px 2px}
 .week{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;overflow-x:auto;padding-bottom:6px}
-.day{background:#EFEFEB;border:1px solid var(--line);border-radius:14px;padding:10px;min-height:300px}
+.day{background:var(--day);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:300px}
 .day.today{background:var(--soft);border:2px solid var(--accent)}
 .day h3{font-size:14px;display:flex;justify-content:space-between;margin:2px 4px 10px;font-family:Inter;font-weight:600}
 .day .card{padding:10px;gap:8px}
@@ -46,14 +50,14 @@ small{color:var(--muted);font-size:13px}
 .panel.open{border:2px solid var(--accent)}
 .cls{display:flex;gap:12px;align-items:center;cursor:pointer;width:100%;text-align:left;background:none;border:0;padding:0}
 .stripe{width:6px;align-self:stretch;border-radius:3px;flex:none}
-.prog{height:8px;border-radius:4px;background:#E8E8E3;overflow:hidden;flex:1}.prog span{display:block;height:100%;background:var(--accent)}
-.pill{font-size:12px;font-weight:600;background:var(--soft);color:#1F3FAE;padding:3px 10px;border-radius:10px}
+.prog{height:8px;border-radius:4px;background:var(--track);overflow:hidden;flex:1}.prog span{display:block;height:100%;background:var(--accent)}
+.pill{font-size:12px;font-weight:600;background:var(--soft);color:var(--pilltext);padding:3px 10px;border-radius:10px}
 .note{background:var(--bg);border-radius:10px;padding:10px 12px;margin:6px 0;display:flex;gap:8px;white-space:pre-wrap}
 .note div{flex:1}
-dialog{border:0;border-radius:18px;padding:0;width:min(440px,94vw);box-shadow:0 20px 60px #0004}
+dialog{background:var(--card);color:var(--ink);border:0;border-radius:18px;padding:0;width:min(440px,94vw);box-shadow:0 20px 60px #0004}
 dialog form{padding:20px;display:flex;flex-direction:column;gap:12px}
 dialog label{display:flex;flex-direction:column;gap:5px;font-size:14px;font-weight:600}
-dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radius:10px;padding:10px 12px;min-height:44px;background:#fff;font-weight:400}
+dialog input,dialog select,dialog textarea{border:1px solid var(--fieldline);border-radius:10px;padding:10px 12px;min-height:44px;background:var(--field);font-weight:400}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
 .stats div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
 .stats b{display:block;font:700 26px 'Space Grotesk',Inter,sans-serif}
@@ -66,22 +70,22 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 .qa{display:flex;gap:8px;margin:4px 0 4px}
-.qa input{flex:1;min-width:0;border:1px solid #CFCFC9;border-radius:12px;padding:10px 14px;min-height:44px;background:#fff}
+.qa input{flex:1;min-width:0;border:1px solid var(--fieldline);border-radius:12px;padding:10px 14px;min-height:44px;background:var(--field)}
 .qa input:focus{outline:2px solid var(--accent);border-color:transparent}
 /* calendar */
 .cal-title{font-size:28px}
 .cal-ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .cal-ctl .btn{padding:0 12px}
-.seg{display:inline-flex;background:#E8E8E3;border-radius:10px;padding:3px;margin-right:4px}
+.seg{display:inline-flex;background:var(--track);border-radius:10px;padding:3px;margin-right:4px}
 .seg button{border:0;background:none;padding:0 14px;min-height:38px;border-radius:8px;font-weight:600;cursor:pointer;color:var(--muted)}
 .seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px #0002}
 .mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .wd{font-size:12px;font-weight:600;color:var(--muted);text-align:right;padding:8px 10px 4px}
 .mday{border:0;border-top:1px solid var(--line);border-left:1px solid var(--line);background:none;min-height:112px;padding:4px;display:flex;flex-direction:column;align-items:stretch;gap:2px;text-align:left;cursor:pointer;min-width:0}
 .mday:nth-child(7n+1){border-left:0}
-.mday:hover{background:#00000006}
+.mday:hover{background:var(--hover)}
 .mday .num{align-self:flex-end;width:26px;height:26px;display:grid;place-items:center;border-radius:13px;font-weight:600;font-size:14px}
-.mday.out .num{color:#B5B5AF}
+.mday.out .num{color:var(--faint)}
 .mday.sel{background:var(--soft)}
 .mday.today .num{background:var(--today);color:#fff}
 .chip{display:block;font-size:12px;padding:1px 6px;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -90,7 +94,7 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
 .dots{display:none;gap:3px;justify-content:center;flex-wrap:wrap}.dots i{width:6px;height:6px;border-radius:3px}
 .year{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px 24px}
 .ymon{border:0;background:none;text-align:left;cursor:pointer;padding:8px;border-radius:12px}
-.ymon:hover{background:#0000000a}
+.ymon:hover{background:var(--hover)}
 .ymon b{display:block;font:700 18px 'Space Grotesk',Inter,sans-serif;margin-bottom:6px}
 .ymon b.cur{color:var(--today)}
 .ygrid{display:grid;grid-template-columns:repeat(7,1fr);font-size:11px;text-align:center;row-gap:2px}
@@ -99,6 +103,7 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
 .ygrid .today{background:var(--today);color:#fff;font-weight:600}.ygrid .today::after{background:#fff}
 @media(max-width:640px){.mday{min-height:58px;padding:4px 2px}.chips{display:none}.dots{display:flex}.mday .num{align-self:center}.wd{text-align:center;padding:8px 0 4px}
   .year{grid-template-columns:repeat(2,1fr);gap:8px}.cal-title{font-size:24px}}
+.theme{border:1px solid var(--line);background:var(--card);border-radius:12px;min-height:44px;padding:0 12px;cursor:pointer;font-weight:500;color:var(--muted)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}
 </style>
@@ -108,6 +113,7 @@ dialog input,dialog select,dialog textarea{border:1px solid #CFCFC9;border-radiu
 <header class="top">
 <h1>Homework Planner</h1>
 <nav id="tabs"></nav>
+<button class="theme" id="themeBtn" data-act="theme" aria-label="Color theme"></button>
 </header>
 <main id="view"></main>
 </div>
@@ -294,6 +300,19 @@ function vCalendar() {
     ${list(sel, itemCard, 'Nothing due this day.')}`;
 }
 
+/* ---------- dark mode ---------- */
+// '' = follow the device, 'light' or 'dark' = always that. Saved per device.
+function setTheme(t) {
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  try { t ? localStorage.setItem('hpgt-theme', t) : localStorage.removeItem('hpgt-theme'); } catch (e) {}
+  $('#themeBtn').textContent = { '': '◐ Auto', light: '☀ Light', dark: '☾ Dark' }[t];
+}
+setTheme(document.documentElement.dataset.theme || '');
+// PDFs always print in light colors
+let themeBeforePrint;
+addEventListener('beforeprint', () => { themeBeforePrint = document.documentElement.dataset.theme; document.documentElement.dataset.theme = 'light'; });
+addEventListener('afterprint', () => { if (themeBeforePrint) document.documentElement.dataset.theme = themeBeforePrint; else delete document.documentElement.dataset.theme; });
+
 /* ---------- quick add ---------- */
 // Turns text like "bio lab report fri at 3pm" into an assignment
 const qaHint = 'Type a class, a day (fri, tomorrow, 12/3) and a time (at 3pm), then press Enter.';
@@ -373,7 +392,7 @@ function vProgress() {
       const n = items.filter(it => it.done).length, late = items.filter(overdue);
       return `<div class="panel"><div style="display:flex;gap:10px;align-items:center"><span class="stripe" style="background:${c.color};height:22px"></span><b style="flex:1">${esc(c.name)}</b><small>${n} of ${items.length} done</small></div>
         <div style="display:flex;margin:10px 0 4px"><span class="prog"><span style="width:${Math.round(n / items.length * 100)}%;background:${c.color}"></span></span></div>
-        ${late.length ? `<small style="color:#B42318;font-weight:600">${late.length} overdue:</small>${late.map(it => `<br><small>${esc(it.title)} · due ${fmt(it.due)}</small>`).join('')}` : '<small>Nothing overdue</small>'}</div>`;
+        ${late.length ? `<small style="color:var(--danger);font-weight:600">${late.length} overdue:</small>${late.map(it => `<br><small>${esc(it.title)} · due ${fmt(it.due)}</small>`).join('')}` : '<small>Nothing overdue</small>'}</div>`;
     }).join('')}</div>` : '<p class="empty">No assignments yet.</p>'}
   </div>`;
 }
@@ -423,7 +442,7 @@ function openForm(type, ds) {
     const miss = [...form.querySelectorAll('[required]')].find(x => !x.value.trim());
     form.querySelector('.err')?.remove();
     if (miss) {
-      miss.insertAdjacentHTML('afterend', '<small class="err" style="color:#B42318;font-weight:600">Please fill this in.</small>');
+      miss.insertAdjacentHTML('afterend', '<small class="err" style="color:var(--danger);font-weight:600">Please fill this in.</small>');
       miss.focus();
       return;
     }
@@ -470,6 +489,7 @@ document.addEventListener('click', e => {
   if (a === 'form') return openForm(d.type, d);
   if (a === 'close') return $('#dlg').close();
   if (a === 'print') return window.print();
+  if (a === 'theme') { const order = ['', 'light', 'dark']; setTheme(order[(order.indexOf(document.documentElement.dataset.theme || '') + 1) % 3]); return; }
   if (a === 'calView') { calView = d.id; return render(); }
   if (a === 'calDay') { calSel = d.id; calMonth = d.id.slice(0, 7); return render(); }
   if (a === 'calGo') { calView = 'month'; calMonth = d.id; calSel = d.id === today().slice(0, 7) ? today() : d.id + '-01'; return render(); }

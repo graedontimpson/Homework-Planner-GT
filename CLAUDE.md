@@ -47,6 +47,7 @@ Mr. Zitting tracks progress through this GitHub repo's commit history, so make s
 
 ## Design
 A design canvas made in Claude has mockups of the Week, Today, Add assignment, Classes and Goals screens.
+- Dark mode: follows the device setting. The header button cycles Auto / Light / Dark and saves the choice per device in localStorage `hpgt-theme` (sets `data-theme` on `<html>`). All colors are CSS variables on `:root`, with dark values in a `prefers-color-scheme` block and in `:root[data-theme=dark]`. Use variables, not hard-coded colors, for anything new. PDFs always print light.
 - Look: Inter for body text, Space Grotesk for headings, off-white background `#F7F7F5`, blue accent `#2F5BEA`.
 - Each class gets its own color.
 
