@@ -15,6 +15,7 @@ Mr. Zitting tracks progress through this GitHub repo's commit history, so make s
 ## Features
 - Tabs: Today, Week, Calendar, Classes, Goals, Notes, Progress. On phone-width screens the tab bar sits at the bottom.
 - Calendar tab (`vCalendar`, styled like Apple Calendar): Month and Year views only (the user chose to keep the Week tab instead of a calendar week view). Month shows class-colored labels per day on wide screens and dots on phones; tapping a day lists its assignments below the grid. Year shows 12 mini months with a dot on days that have homework; tapping a month opens it. Today is a red circle (`--today`). State: `calView`, `calMonth` ('YYYY-MM'), `calSel` (selected day).
+- Time estimates: assignments have an optional "Time needed" (`mins`). Cards show "~30 min", Today's header shows time left today (including overdue) and time due tomorrow, and each Week day shows its total. Quick add reads "30m", "1.5hr", "1h30m", "20 min".
 - Quick add (top of Today): `parseQuick()` turns text like "bio lab report fri at 3pm" into an assignment. It finds the class (full name, or a 3+ letter word that starts the class name), the day (today/tonight/tomorrow, weekdays, 12/3, dec 3) and time (3pm, 8:30am, noon). With no day it uses tomorrow, with no time 11:59 PM, and the reminder is 4 hours before. A preview line shows the result while typing.
 - Assignments have a class, due date and time, a reminder, and notes. They can be edited (✎) or deleted (×).
 - Goals ("Edit goal" button), steps (✎) and notes (✎) can be edited too. All edits reuse the same form as adding, filled in with the saved values.
@@ -32,7 +33,7 @@ Mr. Zitting tracks progress through this GitHub repo's commit history, so make s
 - All data lives in one object, `S = { classes, items, goals, notes }`, saved in localStorage under the key `hpgt-v1`.
 - `save()` writes to localStorage, re-renders the page, and calls `window.cloudSave(S)`.
 - Classes: `{id, name, teacher, period, room, color}`
-- Items (assignments): `{id, title, classId, due:'YYYY-MM-DD', time:'HH:MM', remind:minutes|-1(7 AM on the due date)|null, notes, done, doneAt:'YYYY-MM-DD' (set when checked off; older items don't have it, so the report uses the due date), notified}`
+- Items (assignments): `{id, title, classId, due:'YYYY-MM-DD', time:'HH:MM', remind:minutes|-1(7 AM on the due date)|null, mins:estimated minutes|null, notes, done, doneAt:'YYYY-MM-DD' (set when checked off; older items don't have it, so the report uses the due date), notified}`
 - Goals: `{id, title, area, deadline, steps:[{id, label, date, done}]}`
 - Notes: `{id, text, date, classId, goalId}`
 

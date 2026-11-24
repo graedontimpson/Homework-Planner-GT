@@ -142,13 +142,16 @@ window.getState = () => S;
 window.applyRemote = d => { S = d; localStorage.setItem(KEY, JSON.stringify(S)); render(); };
 
 /* ---------- cards ---------- */
+// Time estimates: 90 -> "1 hr 30 min"
+const dur = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' hr' + (m % 60 ? ' ' + m % 60 + ' min' : '');
+const minsLeft = test => S.items.filter(i => !i.done && i.mins && test(i)).reduce((sum, i) => sum + i.mins, 0);
 function itemCard(it) {
   const c = cls(it.classId);
   return `<label class="card ${it.done ? 'done' : ''}">
     <input type="checkbox" data-act="toggleItem" data-id="${it.id}" ${it.done ? 'checked' : ''}>
     <span class="body"><span class="tag"><i style="background:${c.color}"></i>${esc(c.name)}</span>
     <b>${esc(it.title)}</b>
-    <small>${fmt(it.due)}${it.time ? ' · ' + it.time : ''}${it.remind ? ' · reminder on' : ''}</small>
+    <small>${fmt(it.due)}${it.time ? ' · ' + it.time : ''}${it.mins ? ' · ~' + dur(it.mins) : ''}${it.remind ? ' · reminder on' : ''}</small>
     ${it.notes ? `<small>${esc(it.notes)}</small>` : ''}</span>
     <button type="button" class="x" data-act="form" data-type="item" data-edit="${it.id}" aria-label="Edit assignment">✎</button>
     <button type="button" class="x" data-act="delItem" data-id="${it.id}" aria-label="Delete assignment">×</button></label>`;
@@ -175,9 +178,11 @@ function vToday() {
   const dueToday = S.items.filter(i => i.due === t).sort(byDue);
   const soon = open.filter(i => i.due > t && i.due <= addDays(t, 7)).sort(byDue);
   const steps = stepsOn(t);
-  return `<div class="bar"><div><h2>Today</h2><small>${fmt(t)}</small></div>
+  const leftToday = minsLeft(i => i.due <= t), leftTmrw = minsLeft(i => i.due === addDays(t, 1));
+  const est = [leftToday && `About ${dur(leftToday)} left today`, leftTmrw && `${dur(leftTmrw)} due tomorrow`].filter(Boolean).join(' · ');
+  return `<div class="bar"><div><h2>Today</h2><small>${fmt(t)}</small>${est ? `<br><small style="color:var(--ink);font-weight:600">${est}</small>` : ''}</div>
     <button class="btn" data-act="form" data-type="item">+ Assignment</button></div>
-    <form class="qa" id="qaForm" autocomplete="off"><input id="qa" placeholder="Quick add: bio lab report fri" aria-label="Quick add assignment" enterkeyhint="done"><button class="btn">Add</button></form>
+    <form class="qa" id="qaForm" autocomplete="off"><input id="qa" placeholder="Quick add: bio lab report fri 45m" aria-label="Quick add assignment" enterkeyhint="done"><button class="btn">Add</button></form>
     <small id="qaPrev">${qaHint}</small>
     ${overdue.length ? `<p class="sec">Overdue · ${overdue.length}</p>${overdue.map(itemCard).join('')}` : ''}
     <p class="sec">Due today · ${dueToday.length}</p>${list(dueToday, itemCard, 'Nothing due today.')}
@@ -195,6 +200,7 @@ function vWeek() {
     const st = stepsOn(day);
     const dd = new Date(day + 'T00:00');
     cols += `<section class="day ${day === t ? 'today' : ''}"><h3><span>${dd.toLocaleDateString(undefined, { weekday: 'short' })}</span><span>${dd.getDate()}</span></h3>
+      ${minsLeft(x => x.due === day) ? `<small style="display:block;margin:-6px 4px 8px">~${dur(minsLeft(x => x.due === day))} left</small>` : ''}
       ${its.map(itemCard).join('')}${st.map(([g, s]) => stepCard(g, s)).join('')}</section>`;
   }
   return `<div class="bar"><h2>Week of ${fmt(start)}</h2><div style="display:flex;gap:8px">
@@ -315,18 +321,21 @@ addEventListener('afterprint', () => { if (themeBeforePrint) document.documentEl
 
 /* ---------- quick add ---------- */
 // Turns text like "bio lab report fri at 3pm" into an assignment
-const qaHint = 'Type a class, a day (fri, tomorrow, 12/3) and a time (at 3pm), then press Enter.';
+const qaHint = 'Type a class, a day (fri, tomorrow, 12/3), a time (at 3pm) and how long it takes (30m, 1h), then press Enter.';
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 function parseQuick(text) {
   const t = today();
-  let words = text.trim().split(/\s+/).filter(Boolean), due = '', time = '', classId = '';
+  let words = text.trim().split(/\s+/).filter(Boolean), due = '', time = '', classId = '', mins = null;
   const low = i => (words[i] || '').toLowerCase().replace(/[.,!?]+$/, '');
   const drop = (i, n = 1) => { words.splice(i, n); if (['due', 'on', 'at', 'by', 'next', 'this'].includes(low(i - 1))) words.splice(i - 1, 1); };
   const fixYear = (m, d) => { let y = +t.slice(0, 4); let s = y + '-' + z(m) + '-' + z(d); if (s < t) s = (y + 1) + '-' + z(m) + '-' + z(d); return s; };
   for (let i = words.length - 1; i >= 0; i--) {
     const w = low(i); let m;
     if (!time && (m = w.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)$/))) { time = z(+m[1] % 12 + (m[3] === 'pm' ? 12 : 0)) + ':' + (m[2] || '00'); drop(i); continue; }
+    if (!mins && (m = w.match(/^(\d+(?:\.\d+)?)(m|min|mins|minutes|h|hr|hrs|hour|hours)$/))) { mins = Math.round(+m[1] * (m[2][0] === 'h' ? 60 : 1)); drop(i); continue; }
+    if (!mins && (m = w.match(/^(\d+)h(\d+)m?$/))) { mins = +m[1] * 60 + +m[2]; drop(i); continue; }
+    if (!mins && /^(min|mins|minutes|hr|hrs|hour|hours)$/.test(w) && /^\d+(\.\d+)?$/.test(low(i - 1))) { mins = Math.round(+low(i - 1) * (w[0] === 'h' ? 60 : 1)); drop(i - 1, 2); i--; continue; }
     if (!time && w === 'noon') { time = '12:00'; drop(i); continue; }
     if (due) continue;
     if (w === 'today' || w === 'tonight') { due = t; drop(i); continue; }
@@ -349,13 +358,13 @@ function parseQuick(text) {
   if (best) { classId = best.c.id; words.splice(best.i, best.n); }
   // Drop little words left hanging at the end, like "for" in "read ch 4 for (english)"
   while (words.length > 1 && ['for', 'in', 'due', 'on', 'at', 'by'].includes(words[words.length - 1].toLowerCase())) words.pop();
-  return { title: words.join(' ') || text.trim(), classId, due: due || addDays(t, 1), time: time || '23:59' };
+  return { title: words.join(' ') || text.trim(), classId, due: due || addDays(t, 1), time: time || '23:59', mins };
 }
 function qaPreview() {
   const v = $('#qa').value.trim(), el = $('#qaPrev');
   if (!v) { el.textContent = qaHint; return; }
   const q = parseQuick(v), when = new Date('2000-01-01T' + q.time).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  el.innerHTML = `Adds <b>${esc(q.title)}</b> · ${esc(q.classId ? cls(q.classId).name : 'No class')} · ${fmt(q.due)} · ${when}`;
+  el.innerHTML = `Adds <b>${esc(q.title)}</b> · ${esc(q.classId ? cls(q.classId).name : 'No class')} · ${fmt(q.due)} · ${when}${q.mins ? ' · ~' + dur(q.mins) : ''}`;
 }
 document.addEventListener('input', e => { if (e.target.id === 'qa') qaPreview(); });
 document.addEventListener('submit', e => {
@@ -408,6 +417,7 @@ function openForm(type, ds) {
     <div class="row"><label>Due date<input type="date" name="due" value="${ds.due || today()}" required></label>
     <label>Time<input type="time" name="time" value="23:59"></label></div>
     <label>Reminder<select name="remind">${opt([['', 'None'], ['60', '1 hour before'], ['240', '4 hours before'], ['1440', '1 day before'], ['-1', 'Morning of (7 AM)']], '240')}</select></label>
+    <label>Time needed<select name="mins">${opt([['', 'Not sure'], ['15', '15 min'], ['30', '30 min'], ['45', '45 min'], ['60', '1 hr'], ['90', '1 hr 30 min'], ['120', '2 hr'], ['180', '3 hr'], ['240', '4 hr']], '')}</select></label>
     <label>Notes<textarea name="notes" rows="2"></textarea></label>`;
   if (type === 'class') f = `<h2>Add class</h2>
     <label>Class name<input name="name" required></label>
@@ -448,7 +458,7 @@ function openForm(type, ds) {
     }
     const v = Object.fromEntries(new FormData(form));
     if (type === 'item') {
-      const fields = { title: v.title, classId: v.classId, due: v.due, time: v.time, remind: v.remind ? +v.remind : null, notes: v.notes, notified: false };
+      const fields = { title: v.title, classId: v.classId, due: v.due, time: v.time, remind: v.remind ? +v.remind : null, mins: v.mins ? +v.mins : null, notes: v.notes, notified: false };
       if (editing) Object.assign(editing, fields);
       else S.items.push({ id: uid(), ...fields, done: false });
       if (v.remind && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
